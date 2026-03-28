@@ -1,0 +1,661 @@
+/* ================================================================
+   IPO Manager — iPhone最適化スタイル
+   ================================================================ */
+
+:root {
+  --color-primary:    #2563eb;
+  --color-primary-dk: #1d4ed8;
+  --color-bg:         #f0f2f5;
+  --color-header:     #1a1a2e;
+  --color-card:       #ffffff;
+  --color-border:     #e5e7eb;
+  --color-text:       #111827;
+  --color-text-sub:   #6b7280;
+  --color-none:       #9ca3af;
+  --color-applied:    #2563eb;
+  --color-won:        #16a34a;
+  --color-lost:       #dc2626;
+  --color-open:       #16a34a;
+  --color-upcoming:   #d97706;
+  --color-closed:     #9ca3af;
+  --nav-height:       56px;
+  --header-height:    52px;
+  --radius:           12px;
+  --radius-sm:        8px;
+  --shadow:           0 1px 4px rgba(0,0,0,0.10);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.14);
+}
+
+/* ── リセット ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Meiryo", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; }
+
+/* ── レイアウト ───────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 540px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ヘッダー */
+#header {
+  position: fixed;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 540px;
+  height: var(--header-height);
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--color-header);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.3);
+}
+#headerTitle { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.02em; }
+#headerAction {
+  color: #60a5fa;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 6px 0;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* メインコンテンツ */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: calc(var(--header-height) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-pane { display: none; padding: 12px 12px 0; }
+.tab-pane.active { display: block; }
+
+/* ボトムナビ */
+#bottomNav {
+  position: fixed;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 540px;
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  z-index: 100;
+}
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--color-none);
+  font-size: 0.65rem;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.nav-btn .nav-icon { font-size: 1.4rem; line-height: 1; }
+.nav-btn.active { color: var(--color-primary); }
+
+/* ── カード共通 ───────────────────────────────── */
+.card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+/* ── IPOカード（一覧タブ）────────────────────── */
+.ipo-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  overflow: hidden;
+  border-left: 4px solid var(--color-border);
+  transition: transform 0.1s;
+  active: { transform: scale(0.99); }
+}
+.ipo-card.ipo-open     { border-left-color: var(--color-open); }
+.ipo-card.ipo-upcoming { border-left-color: var(--color-upcoming); }
+.ipo-card.ipo-closed   { border-left-color: var(--color-closed); }
+
+.ipo-card-header {
+  padding: 12px 14px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ipo-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  flex: 1;
+}
+.ipo-market {
+  font-size: 0.72rem;
+  color: var(--color-text-sub);
+  margin-top: 2px;
+}
+
+.ipo-card-body {
+  padding: 0 14px 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.info-row { display: flex; flex-direction: column; gap: 1px; }
+.info-label { font-size: 0.68rem; color: var(--color-text-sub); }
+.info-value { font-size: 0.85rem; font-weight: 600; }
+.info-value.days-left  { color: var(--color-open); }
+.info-value.days-close { color: var(--color-upcoming); }
+.info-value.days-over  { color: var(--color-closed); }
+
+.ipo-card-footer {
+  padding: 8px 14px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+}
+.broker-summary {
+  font-size: 0.78rem;
+  color: var(--color-text-sub);
+}
+.btn-link {
+  font-size: 0.82rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+/* ── ステータスバッジ ────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-open     { background: #dcfce7; color: var(--color-open); }
+.badge-upcoming { background: #fef3c7; color: var(--color-upcoming); }
+.badge-closed   { background: #f3f4f6; color: var(--color-closed); }
+
+/* ── フィルターバー ──────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text-sub);
+  transition: all 0.15s;
+}
+.filter-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* ── ビュー切替トグル ────────────────────────── */
+.view-toggle {
+  display: flex;
+  background: var(--color-card);
+  border-radius: 10px;
+  padding: 4px;
+  margin: 12px 16px 8px;
+  box-shadow: var(--shadow);
+  gap: 4px;
+}
+.view-toggle-btn {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  background: none;
+  transition: background 0.15s, color 0.15s;
+}
+.view-toggle-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ── 証券会社別ビュー ─────────────────────────── */
+.broker-section {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 0 16px 12px;
+  overflow: hidden;
+}
+.broker-section-header {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  background: #f8fafc;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.02em;
+}
+.broker-section-body {}
+.broker-ipo-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 10px;
+}
+.broker-ipo-row:last-child { border-bottom: none; }
+.broker-ipo-info { flex: 1; min-width: 0; }
+.broker-ipo-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.broker-ipo-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-sub);
+  margin-top: 2px;
+}
+.broker-ipo-chip-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.broker-ipo-lots {
+  font-size: 0.65rem;
+  color: var(--color-text-sub);
+}
+.broker-chip-inline {
+  padding: 5px 12px;
+  min-width: 60px;
+  flex-direction: row;
+  gap: 0;
+}
+.broker-chip-inline .broker-chip-status {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+/* ── 申込管理カード ──────────────────────────── */
+.apply-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+  padding: 14px;
+}
+.apply-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.apply-card-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-sub);
+  margin-bottom: 12px;
+}
+
+.broker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.broker-chip {
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: opacity 0.1s, transform 0.1s;
+  user-select: none;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.broker-chip:active { opacity: 0.75; transform: scale(0.97); }
+.broker-chip-name   { font-size: 0.72rem; font-weight: 600; }
+.broker-chip-status { font-size: 0.68rem; }
+.broker-chip-lots   { font-size: 0.64rem; opacity: 0.75; }
+
+.broker-chip.s-none     { background: #f3f4f6; color: var(--color-none); }
+.broker-chip.s-applied  { background: #dbeafe; color: var(--color-applied); }
+.broker-chip.s-won      { background: #dcfce7; color: var(--color-won); }
+.broker-chip.s-lost     { background: #fee2e2; color: var(--color-lost); }
+
+/* ── 損益タブ ────────────────────────────────── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 10px;
+  text-align: center;
+}
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.stat-value.positive { color: var(--color-won); }
+.stat-value.negative { color: var(--color-lost); }
+.stat-label { font-size: 0.65rem; color: var(--color-text-sub); margin-top: 2px; }
+
+.chart-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.chart-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  margin-bottom: 10px;
+}
+
+.result-item {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.result-left { flex: 1; }
+.result-name { font-size: 0.88rem; font-weight: 700; }
+.result-meta { font-size: 0.72rem; color: var(--color-text-sub); margin-top: 2px; }
+.result-profit {
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: right;
+}
+.result-profit.positive { color: var(--color-won); }
+.result-profit.negative { color: var(--color-lost); }
+
+/* ── 設定タブ ────────────────────────────────── */
+.settings-section { margin-bottom: 20px; }
+.settings-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 4px;
+  margin-bottom: 6px;
+}
+.settings-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 0.88rem; font-weight: 500; }
+.settings-row-value { font-size: 0.82rem; color: var(--color-text-sub); }
+
+/* ── ボタン ──────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:active { opacity: 0.8; transform: scale(0.98); }
+.btn-primary  { background: var(--color-primary); color: #fff; }
+.btn-danger   { background: var(--color-lost); color: #fff; }
+.btn-outline  { background: transparent; border: 1.5px solid var(--color-primary); color: var(--color-primary); }
+.btn-ghost    { background: #f3f4f6; color: var(--color-text); }
+.btn-full     { width: 100%; }
+.btn-sm       { padding: 7px 14px; font-size: 0.8rem; }
+
+/* ── フォーム ────────────────────────────────── */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  margin-bottom: 5px;
+}
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  color: var(--color-text);
+  background: var(--color-card);
+  appearance: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── モーダル（ボトムシート）────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.modal.hidden { display: none; }
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+}
+.modal-sheet {
+  position: relative;
+  background: var(--color-card);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  max-height: 88dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin: 10px auto 14px;
+}
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ── トースト通知 ─────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a2e;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 300;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast.toast-success { background: var(--color-won); }
+#toast.toast-error   { background: var(--color-lost); }
+
+/* ── 空状態 ──────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-sub);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state .empty-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: var(--color-text); }
+.empty-state .empty-desc  { font-size: 0.85rem; line-height: 1.5; }
+
+/* ── セクションタイトル ──────────────────────── */
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 4px 6px;
+}
+
+/* ── スピナー ────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ローディング ────────────────────────────── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  flex-direction: column;
+  gap: 12px;
+}
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.loading-text { font-size: 0.85rem; color: var(--color-text-sub); }
+
+/* ── ユーティリティ ──────────────────────────── */
+.pb-bottom { padding-bottom: 16px; }
+.divider { height: 1px; background: var(--color-border); margin: 4px 0; }
+.text-sub  { color: var(--color-text-sub); }
+.text-sm   { font-size: 0.82rem; }
+.mt-8  { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+
+/* ================================================================
+   frontend/ 固有の追加スタイル（GAS バックエンド版）
+   ================================================================ */
+
+/* ヘッダーアクション（更新ボタン）*/
+#headerAction {
+  color: #60a5fa;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(96,165,250,0.15);
+  white-space: nowrap;
+}
+#headerAction:disabled {
+  opacity: 0.5;
+}
+
+/* ビュートグル（申込管理タブ）*/
+.view-toggle {
+  margin: 0 0 12px 0;
+}

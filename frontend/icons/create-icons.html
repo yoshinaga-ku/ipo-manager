@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>アイコン生成ツール</title>
+  <style>
+    body { font-family: sans-serif; padding: 24px; background: #f5f5f7; }
+    h1   { font-size: 18px; margin-bottom: 16px; }
+    p    { font-size: 14px; color: #555; margin-bottom: 16px; }
+    .row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    .item { text-align: center; }
+    canvas { display: block; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    a.dl {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 14px;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    small { display: block; font-size: 12px; color: #888; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>IPO Manager — アイコン生成ツール</h1>
+  <p>
+    このページをブラウザで開き、下の「ダウンロード」ボタンで PNG を保存して
+    <code>frontend/icons/</code> フォルダに置いてください。
+  </p>
+  <div class="row">
+    <div class="item">
+      <canvas id="c192" width="192" height="192"></canvas>
+      <a class="dl" id="dl192" download="icon-192.png">⬇ icon-192.png</a>
+      <small>192×192（ホーム画面用）</small>
+    </div>
+    <div class="item">
+      <canvas id="c512" width="512" height="512"></canvas>
+      <a class="dl" id="dl512" download="icon-512.png">⬇ icon-512.png</a>
+      <small>512×512（スプラッシュ用）</small>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const s   = canvas.width;
+      const ctx = canvas.getContext('2d');
+      const r   = s * 0.219; // corner radius ratio
+
+      // 角丸背景
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(s - r, 0);
+      ctx.quadraticCurveTo(s, 0, s, r);
+      ctx.lineTo(s, s - r);
+      ctx.quadraticCurveTo(s, s, s - r, s);
+      ctx.lineTo(r, s);
+      ctx.quadraticCurveTo(0, s, 0, s - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fill();
+
+      const sc = s / 192; // スケール係数
+
+      // 上昇トレンドライン
+      ctx.beginPath();
+      ctx.moveTo(28 * sc, 140 * sc);
+      ctx.lineTo(68 * sc, 100 * sc);
+      ctx.lineTo(100 * sc, 118 * sc);
+      ctx.lineTo(164 * sc, 46 * sc);
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth   = 11 * sc;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.stroke();
+
+      // 矢印ヘッド
+      ctx.beginPath();
+      ctx.moveTo(145 * sc, 35 * sc);
+      ctx.lineTo(164 * sc, 46 * sc);
+      ctx.lineTo(153 * sc, 65 * sc);
+      ctx.stroke();
+
+      // ベースライン
+      ctx.beginPath();
+      ctx.moveTo(24 * sc, 156 * sc);
+      ctx.lineTo(168 * sc, 156 * sc);
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth   = 4 * sc;
+      ctx.stroke();
+
+      // IPO テキスト
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font      = `700 ${16 * sc}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.letterSpacing = '3px';
+      ctx.fillText('IPO', s / 2, 178 * sc);
+    }
+
+    function setup(canvasId, dlId) {
+      const canvas = document.getElementById(canvasId);
+      drawIcon(canvas);
+      const dl = document.getElementById(dlId);
+      dl.href = canvas.toDataURL('image/png');
+    }
+
+    setup('c192', 'dl192');
+    setup('c512', 'dl512');
+  </script>
+</body>
+</html>

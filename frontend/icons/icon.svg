@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- 角丸背景 -->
+  <rect width="192" height="192" rx="42" fill="#1a1a2e"/>
+
+  <!-- 上昇トレンドライン -->
+  <polyline
+    points="28,140 68,100 100,118 164,46"
+    fill="none"
+    stroke="#60a5fa"
+    stroke-width="11"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- 矢印ヘッド -->
+  <polyline
+    points="145,35 164,46 153,65"
+    fill="none"
+    stroke="#60a5fa"
+    stroke-width="11"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- ベースライン -->
+  <line
+    x1="24" y1="156" x2="168" y2="156"
+    stroke="rgba(255,255,255,0.2)"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <!-- IPO テキスト -->
+  <text
+    x="96" y="178"
+    text-anchor="middle"
+    fill="rgba(255,255,255,0.45)"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="16"
+    font-weight="700"
+    letter-spacing="3"
+  >IPO</text>
+</svg>

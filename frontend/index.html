@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <!-- PWA / iPhone ホーム画面 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IPO管理">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="style.css">
+  <title>IPO Manager</title>
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ヘッダー -->
+    <header id="header">
+      <h1 id="headerTitle">IPO一覧</h1>
+      <button id="headerAction" aria-label="データ更新"></button>
+    </header>
+
+    <!-- タブコンテンツ -->
+    <main id="main">
+      <div id="tab-list"     class="tab-pane active"></div>
+      <div id="tab-apply"    class="tab-pane"></div>
+      <div id="tab-pnl"      class="tab-pane"></div>
+      <div id="tab-settings" class="tab-pane"></div>
+    </main>
+
+    <!-- ボトムナビ -->
+    <nav id="bottomNav">
+      <button class="nav-btn active" data-tab="list">
+        <span class="nav-icon">📋</span>
+        <span>一覧</span>
+      </button>
+      <button class="nav-btn" data-tab="apply">
+        <span class="nav-icon">✏️</span>
+        <span>申込管理</span>
+      </button>
+      <button class="nav-btn" data-tab="pnl">
+        <span class="nav-icon">📈</span>
+        <span>損益</span>
+      </button>
+      <button class="nav-btn" data-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>設定</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- モーダル（ボトムシート） -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-sheet">
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- ローディングオーバーレイ -->
+  <div id="loadingOverlay" class="loading-overlay" style="display:none">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">読み込み中…</div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast"></div>
+
+  <!-- アプリ本体 -->
+  <script src="app.js"></script>
+
+</body>
+</html>
