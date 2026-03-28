@@ -102,22 +102,43 @@ function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/**
+ * GAS の getValues() はスプレッドシートの日付セルを Date オブジェクトとして返す。
+ * JSON.stringify() すると "2026-03-27T15:00:00.000Z" のような UTC ISO 文字列になり、
+ * 末尾に 'T00:00:00' を付けると不正な文字列になって NaN になる。
+ *
+ * "YYYY-MM-DD" (スクレイパーが直接返す文字列) と
+ * "YYYY-MM-DDThh:mm:ss.sssZ" (GAS が Date 型で返した場合) の両方に対応するため、
+ * 10文字より長い場合はそのまま new Date() へ渡し、ブラウザのローカル時刻で解釈させる。
+ * （日本語環境のブラウザは JST なので UTC+9 が正しく補正される）
+ */
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const s = String(dateStr).trim();
+  if (!s || s === 'null') return null;
+  const d = s.length > 10
+    ? new Date(s)                    // ISO タイムスタンプ → ブラウザがローカル時刻に変換
+    : new Date(s + 'T00:00:00');     // YYYY-MM-DD → ローカル時刻の 0 時として解釈
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = parseDate(dateStr);
+  if (!d) return '—';
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function formatDateFull(dateStr) {
-  if (!dateStr) return '未定';
-  const d = new Date(dateStr.slice(0, 10) + 'T00:00:00');
+  const d = parseDate(dateStr);
+  if (!d) return '未定';
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function getDaysLeft(dateStr) {
-  if (!dateStr) return null;
+  const d = parseDate(dateStr);
+  if (!d) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  return Math.round((new Date(dateStr + 'T00:00:00') - today) / 86400000);
+  return Math.round((d - today) / 86400000);
 }
 
 function getIpoStatusKey(ipo) {
