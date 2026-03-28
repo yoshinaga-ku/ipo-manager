@@ -14,6 +14,10 @@ const STATUS_CYCLE = ['none', 'applied', 'won', 'lost'];
 const STATUS_LABEL = { none: '未申込', applied: '申込済', won: '当選', lost: '落選' };
 const TAB_TITLE    = { list: 'IPO一覧', apply: '申込管理', pnl: '損益', settings: '設定' };
 
+// 長押し検出用（iPhoneのタッチイベントで使用）
+let _lpTimer = null;
+let _lpFired = false;
+
 // ================================================================
 // アプリ状態
 // ================================================================
@@ -340,7 +344,11 @@ function applyCard(ipo) {
     const app = getApp(ipo.id, broker);
     const sc  = statusClass(app.status);
     const lots = app.lots ? `<div class="broker-chip-lots">${app.lots}口</div>` : '';
-    return `<div class="broker-chip ${sc}" onclick="cycleStatus('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')">
+    return `<div class="broker-chip ${sc}"
+             onclick="if(!_lpFired)cycleStatus('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+             ontouchstart="startLongPress(event,'${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+             ontouchend="endLongPress()"
+             ontouchmove="endLongPress()">
       <div class="broker-chip-name">${esc(broker)}</div>
       <div class="broker-chip-status">${STATUS_LABEL[app.status] || '未申込'}</div>
       ${lots}
@@ -357,13 +365,14 @@ function applyCard(ipo) {
 
 function renderBrokerView() {
   const sections = DEFAULT_BROKERS.map(broker => {
-    const apps = state.ipos
+    const applied = state.ipos
       .map(ipo => ({ ipo, app: getApp(ipo.id, broker) }))
       .filter(({ app }) => app.status !== 'none');
 
-    if (apps.length === 0) return '';
+    // 申込なし証券会社はセクション自体を非表示
+    if (applied.length === 0) return '';
 
-    const rows = apps.map(({ ipo, app }) => `
+    const rows = applied.map(({ ipo, app }) => `
       <div class="broker-ipo-row">
         <div class="broker-ipo-info">
           <div class="broker-ipo-name">${esc(ipo.name)}</div>
@@ -371,17 +380,31 @@ function renderBrokerView() {
         </div>
         <div class="broker-ipo-chip-wrap">
           <div class="broker-chip ${statusClass(app.status)} broker-chip-inline"
-               onclick="cycleStatus('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')">
+               onclick="if(!_lpFired)cycleStatus('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+               ontouchstart="startLongPress(event,'${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+               ontouchend="endLongPress()"
+               ontouchmove="endLongPress()">
             <span class="broker-chip-status">${STATUS_LABEL[app.status]}</span>
           </div>
           ${app.lots ? `<span class="broker-ipo-lots">${app.lots}口</span>` : ''}
         </div>
       </div>`).join('');
 
+    // 未申込のIPOが残っている場合は「銘柄を追加」行を表示
+    const unregistered = state.ipos.filter(ipo => getApp(ipo.id, broker).status === 'none');
+    const addRow = unregistered.length > 0 ? `
+      <div class="broker-ipo-row" style="cursor:pointer" onclick="openAddToBrokerModal('${esc(broker)}')">
+        <div class="broker-ipo-info">
+          <div style="color:var(--color-primary);font-size:0.88rem;font-weight:600;">
+            ＋ 別の銘柄を申込む（未申込 ${unregistered.length}件）
+          </div>
+        </div>
+      </div>` : '';
+
     return `
       <div class="broker-section">
         <div class="broker-section-header">${esc(broker)}</div>
-        <div class="broker-section-body">${rows}</div>
+        <div class="broker-section-body">${rows}${addRow}</div>
       </div>`;
   }).filter(Boolean).join('');
 
@@ -466,7 +489,10 @@ function buildApplyModalHtml(ipo) {
     const sc  = statusClass(app.status);
     const lots = app.lots ? `<div class="broker-chip-lots">${app.lots}口</div>` : '';
     return `<div class="broker-chip ${sc}"
-               onclick="cycleStatusInModal('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')">
+               onclick="if(!_lpFired)cycleStatusInModal('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+               ontouchstart="startLongPress(event,'${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')"
+               ontouchend="endLongPress()"
+               ontouchmove="endLongPress()">
       <div class="broker-chip-name">${esc(broker)}</div>
       <div class="broker-chip-status">${STATUS_LABEL[app.status] || '未申込'}</div>
       ${lots}
@@ -539,6 +565,158 @@ async function confirmLots(ipoId, ipoName, broker) {
   } catch (e) {
     showToast('保存に失敗しました', 'error');
   }
+}
+
+// ================================================================
+// 長押し検出（500ms で編集モーダルを開く）
+// ================================================================
+
+function startLongPress(e, ipoId, ipoName, broker) {
+  _lpFired = false;
+  _lpTimer = setTimeout(() => {
+    _lpFired = true;
+    openEditStatusModal(ipoId, ipoName, broker);
+  }, 500);
+}
+
+function endLongPress() {
+  clearTimeout(_lpTimer);
+  _lpTimer = null;
+  // click イベントは touchend の直後に発火するため、
+  // 1フレーム後にリセットして onclick の _lpFired チェックが正しく動くようにする
+  requestAnimationFrame(() => { _lpFired = false; });
+}
+
+// 長押し時に開く：ステータス直接選択＋口数編集モーダル
+function openEditStatusModal(ipoId, ipoName, broker) {
+  const app   = getApp(ipoId, broker);
+  const curSt = app.status || 'none';
+
+  const statusBtns = ['applied', 'won', 'lost'].map(s => `
+    <button class="btn btn-full${curSt === s ? ' btn-primary' : ' btn-ghost'}"
+            style="margin-bottom:6px"
+            onclick="selectEditStatus('${esc(ipoId)}','${esc(broker)}','${s}')">
+      ${STATUS_LABEL[s]}${curSt === s ? ' ✓' : ''}
+    </button>`).join('');
+
+  const deleteBtn = app.id ? `
+    <button class="btn btn-danger btn-full" style="margin-top:4px"
+            onclick="deleteEditStatus('${esc(ipoId)}','${esc(broker)}')">
+      申込を削除
+    </button>` : '';
+
+  openModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">${esc(broker)}</div>
+    <div class="text-sub text-sm" style="margin-bottom:14px">${esc(ipoName)}</div>
+    <div class="form-group">
+      <label class="form-label">ステータスを選択</label>
+      ${statusBtns}
+    </div>
+    <div class="form-group">
+      <label class="form-label">申込口数</label>
+      <input type="number" class="form-input" id="editLotsInput"
+             value="${app.lots || 1}" min="1" style="font-size:16px" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveEditStatus('${esc(ipoId)}','${esc(ipoName)}','${esc(broker)}')">保存</button>
+      ${deleteBtn}
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">キャンセル</button>
+    </div>`);
+}
+
+// ステータスボタンを押した時のハイライト切替（保存は「保存」ボタン押下時）
+function selectEditStatus(ipoId, broker, status) {
+  // ボタンの見た目を更新
+  document.querySelectorAll('#modalContent .btn').forEach(btn => {
+    const s = btn.getAttribute('onclick')?.match(/selectEditStatus\('[^']+','[^']+','([^']+)'\)/)?.[1];
+    if (!s) return;
+    btn.className = 'btn btn-full' + (s === status ? ' btn-primary' : ' btn-ghost');
+    btn.style.marginBottom = '6px';
+    btn.textContent = STATUS_LABEL[s] + (s === status ? ' ✓' : '');
+  });
+  // 選択値をデータ属性で保持
+  document.getElementById('editLotsInput').dataset.selectedStatus = status;
+}
+
+async function saveEditStatus(ipoId, ipoName, broker) {
+  const input     = document.getElementById('editLotsInput');
+  const lots      = parseInt(input.value) || 1;
+  // selectEditStatus で選ばれていれば使い、なければ現在の status を維持
+  const newStatus = input.dataset.selectedStatus || getApp(ipoId, broker).status || 'applied';
+  const app       = getApp(ipoId, broker);
+  const key       = ipoId + '::' + broker;
+
+  const data = {
+    id:        app.id || genId(),
+    ipoId,
+    ipoName,
+    broker,
+    status:    newStatus,
+    lots,
+    updatedAt: new Date().toISOString(),
+  };
+
+  try {
+    await apiPost({ action: 'saveApplication', data });
+    state.appsMap[key] = data;
+    closeModal();
+    renderApply();
+    showToast(`${broker}: ${STATUS_LABEL[newStatus]}（${lots}口）`, 'success');
+  } catch (e) {
+    showToast('保存に失敗しました', 'error');
+  }
+}
+
+async function deleteEditStatus(ipoId, broker) {
+  const app = getApp(ipoId, broker);
+  if (!app.id) { closeModal(); return; }
+
+  try {
+    await apiPost({ action: 'deleteApplication', id: app.id });
+    delete state.appsMap[ipoId + '::' + broker];
+    closeModal();
+    renderApply();
+    showToast(`${broker}: 申込を削除しました`);
+  } catch (e) {
+    showToast('削除に失敗しました', 'error');
+  }
+}
+
+// ================================================================
+// 証券会社別ビュー：未申込銘柄の追加モーダル
+// ================================================================
+
+function openAddToBrokerModal(broker) {
+  const unregistered = state.ipos.filter(ipo => getApp(ipo.id, broker).status === 'none');
+
+  if (unregistered.length === 0) {
+    showToast('すべての銘柄に申込済みです');
+    return;
+  }
+
+  const rows = unregistered.map(ipo => `
+    <div class="broker-ipo-row" style="cursor:pointer"
+         onclick="addToBroker('${esc(ipo.id)}','${esc(ipo.name)}','${esc(broker)}')">
+      <div class="broker-ipo-info">
+        <div class="broker-ipo-name">${esc(ipo.name)}</div>
+        <div class="broker-ipo-meta">BB: ${formatDate(ipo.bbEnd)} ／ 上場: ${formatDate(ipo.listingDate)}</div>
+      </div>
+      <div style="color:var(--color-primary);font-size:0.82rem;font-weight:600;">申込 →</div>
+    </div>`).join('');
+
+  openModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">${esc(broker)} に銘柄を追加</div>
+    <div class="broker-section-body" style="margin:0 -16px">${rows}</div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">閉じる</button>
+    </div>`);
+}
+
+// 追加モーダルから銘柄を選んだ時：口数入力モーダルへ遷移
+function addToBroker(ipoId, ipoName, broker) {
+  openLotModal(ipoId, ipoName, broker);
 }
 
 // ================================================================
